@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Документация DLE IPS 4.x</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="css/materialize.min.css">
+	<link rel="stylesheet" href="css/style.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+	<header>
+		<nav>
+			<div class="nav-wrapper">
+				<img src="http://forum.dle-integration.ru/uploads/monthly_2017_10/Artboard.png.e952cff921a181d9516213d6cff32e93.png" class="brand-logo center" />
+			</div>
+		</nav>
+	</header>
+	<div class="container">
+		<div class="row">
+			<blockquote>
+				<h4 class="flow-text">Функци можно включать по отдельность</h4>
+			</blockquote>
+			<div class="col s12 m9 l10">
+				<section id="install" class="section scrollspy">
+					<blockquote>
+						<h5><b>Изменения в файлах не проводить до установки модуля.</b></h5>
+					</blockquote>
+					<h5>
+						<ol>
+							<li>Устанока интеграции производиться только на установленные скрипты ДЛЕ и форума</li>
+							<li>Заливаем все файлы из папки dle_uploads в корень ДЛЕ на сервер в бинарном (двоичном режиме)(binary mode), они имеют такую же сткрутуру каталогов как и DLE.</li>
+							<li>Скопировать фай conf_global.php из корня форума в корень ДЛЕ</li>
+							<li>Содержимое папки templates/Default (файлы *.tpl) скопировать в папку с вашим с шаблоном, зарания их подогнать под ваш шаблон, по умолчанию они сделаны для шаблона Default.</li>
+							<li>Запустить мастер установки http://www.ваш_домен/install.php, далее следуйте его инструкциям. Не переходите к следующим пункам пока не закончите работу с мастером установки.
+	Изменить файлы можно не все, к каждомк изменению приведены коментарии, если вы не собираетесь использовать ту или иную возможность, можно изменения для него не проводить.</li>
+						</ol>
+					</h5>
+				</section>
+				<section id="forum_settings" class="section scrollspy">
+					<blockquote>Если форум и ДЛЕ используют разные домены или форум стоит на поддомене, то эту настройку производить не требуется. Иначе сюда прописывается имя вашего домена где стоит форум с точкой спереди и без слешей, остальное ничего не трогаем.</blockquote>
+					<h5>Создаем в корне форума файл constants.php(если отсутствует)</h5>
+					<section class="section">
+						в конец вставляем(если файл был создан ранее)
+						<pre class="language-markup">
+							<code class="language-markup">
+define( 'COOKIE_DOMAIN', '.ваш_адрес_форума.ру' );
+							</code>
+						</pre>
+						вставляем этот код(если только создали файл удалите пробел после <)
+						<pre class="language-markup">
+							<code class="language-markup">
+< ?php
+define( 'COOKIE_DOMAIN', '.dle-integration.ru' );
+							</code>
+						</pre>
+					</section>
+				</section>
+				<section id="sitelogin" class="section scrollspy">
+					<h5>
+						Общая авторизация<b>Файл engine/modules/sitelogin.php</b>
+					</h5>
+					<section class="section">
+						<h5>Подключение модуля интеграции(<b>Обятельзно</b>)</h5>
+						Найти примерно на 18-20 строка
+						<pre class="language-markup">
+							<code class="language-markup">
+if( ! defined( 'DATALIFEENGINE' ) ) {
+	die( "Hacking attempt!" );
+}
+							</code>
+						</pre>
+						Ниже вставьте
+						<pre class="language-markup">
+							<code class="language-markup">
+/* ----------- DLE + IP.Board v2.0. ----------- */
+include(ROOT_DIR . "/dle_vs_ipboard.php");
+/* ----------- DLE + IP.Board v2.0. ----------- */
+							</code>
+						</pre>
+					</section>
+					<section class="section">
+						<h5>Выход</h5>
+						Найти примерно на 33-34 строка
+						<pre class="language-markup">
+							<code class="language-markup">
+$dle_user_id = "";
+$dle_password = "";
+							</code>
+						</pre>
+						Выше вставьте
+						<pre class="language-markup">
+							<code class="language-markup">
+/* ----------- DLE + IP.Board v2.0. ----------- */
+$ipb->logout();
+/* ----------- DLE + IP.Board v2.0. ----------- */
+							</code>
+						</pre>
+					</section>
+					<section class="section">
+						<h5>Авторизация</h5>
+						Найти примерно на 82-90 строка
+						<pre class="language-markup">
+							<code class="language-markup">
+if( is_md5hash( $member_id['password'] ) ) {
+				
+	if($member_id['password'] == md5( md5($_POST['login_password']) ) ) {
+		$is_logged = true;
+	}
+
+} else {
+
+	if(password_verify($_POST['login_password'], $member_id['password'] ) ) {
+		$is_logged = true;
+	}
+
+}
+							</code>
+						</pre>
+						Заменить на
+						<pre class="language-markup">
+							<code class="language-markup">
+if( is_md5hash( $member_id['password'] ) ) {
+				
+	if($member_id['password'] == md5( md5($_POST['login_password']) ) ) {
+		$is_logged = true;
+	}
+	
+} else {
+	
+	if ($member_id['pass_salt'] == NULL) {
+		if(password_verify($_POST['login_password'], $member_id['password'] ) ) {
+			$new_salt = generateSalt();
+			$new_pass = encryptedPassword( $_POST['login_password'], $new_salt );
+			$db->query( "UPDATE ".USERPREFIX."_users SET password='{$new_pass}', pass_salt='{$new_salt}'" );
+			$is_logged = true;
+		}
+	} else {
+		if ( encryptedPassword( $_POST['login_password'], $member_id['pass_salt']) == $member_id['password']  ) {
+			$is_logged = true;
+		}
+	}
+	
+}
+							</code>
+						</pre>
+						Найти примерно на 98-112 строка
+						<pre class="language-markup">
+							<code class="language-markup">
+if ( password_needs_rehash($member_id['password'], PASSWORD_DEFAULT) ) {
+
+	if (version_compare($config['version_id'], '11.2', '>=')) {
+
+		$member_id['password'] = password_hash($_POST['login_password'], PASSWORD_DEFAULT);
+		
+		if( !$member_id['password'] ) {
+			die("PHP extension Crypt must be loaded for password_hash to function");
+		}
+		
+		$new_pass_hash = "password='".$db->safesql($member_id['password'])."', ";
+		
+	} else $new_pass_hash = "";
+	
+} else $new_pass_hash = "";
+							</code>
+						</pre>
+						Заменить на
+						<pre class="language-markup">
+							<code class="language-markup">
+$new_pass_hash = "";
+							</code>
+						</pre>
+						Найти <b>?></b>
+						Выше вставьте
+						<pre class="language-markup">
+							<code class="language-markup">
+/* ----------- DLE + IP.Board v2.0. ----------- */
+$ipb->login($member_id);
+/* ----------- DLE + IP.Board v2.0. ----------- */</code>
+						</pre>
+					</section>
+				</section>
+				<section id="register" class="section scrollspy">
+					<h5>
+						Общая регистрация <b>Файл engine/modules/register.php</b>
+					</h5>
+					<section class="section">
+						<h5>Хеширование паролей</h5>
+						Найти примерно на 656 строка
+						<pre class="language-markup">
+							<code class="language-markup">
+$regpassword = $db->safesql( password_hash($regpassword, PASSWORD_DEFAULT) );
+							</code>
+						</pre>
+						Заменить на
+						<pre class="language-markup">
+							<code class="language-markup">
+/* ----------- DLE + IP.Board v2.0. ----------- */
+$salt_reg = generateSalt();
+$pass_reg_hash = encryptedPassword($regpassword, $salt_reg);
+$regpassword = $db->safesql($pass_reg_hash);
+/* ----------- DLE + IP.Board v2.0. ----------- */
+							</code>
+						</pre>
+						<blockquote>Данная функция выполняет хеширование паролей в новом виде, и обязательна для вставки если вы хотите общую регистрацию и общий профиль!</blockquote>
+					</section>
+					<section class="section">
+						<h5>Регистрация</h5>
+						Найти примерно на 698-699 строка
+						<pre class="language-markup">
+							<code class="language-markup">
+$db->query( "INSERT INTO " . USERPREFIX . "_users (name, password, email, reg_date, lastdate, user_group, info, signature, favorites, xfields, logged_ip, hash) VALUES ('{$name}', '{$regpassword}', '{$email}', '{$add_time}', '{$add_time}', '{$config['reg_group']}', '', '', '', '', '{$_IP}', '{$hash}')" );
+$id = $db->insert_id();
+							</code>
+						</pre>
+						Заменить на
+						<pre class="language-markup">
+							<code class="language-markup">
+$db->query( "INSERT INTO " . USERPREFIX . "_users (name, password, pass_salt, email, reg_date, lastdate, user_group, info, signature, favorites, xfields, logged_ip) VALUES ('$name', '$regpassword', '$salt_reg', '$email', '$add_time', '$add_time', '" . $config['reg_group'] . "', '', '', '', '', '" . $_IP . "')" );
+$id = $db->insert_id();
+
+/* ----------- DLE + IP.Board v2.0. ----------- */
+$ipb->CreateMember($name, $regpassword, $salt_reg, $email, $add_time);
+/* ----------- DLE + IP.Board v2.0. ----------- */
+							</code>
+						</pre>
+					</section>
+				</section>
+				<section id="lostpassword" class="section scrollspy">
+					<h5>Общий сброс пароля <b>Файл engine/modules/lostpassword.php</b></h5>
+					<section class="section">
+						<h5>Изменение пароля на форуме, после восстановления в ДЛЕ</h5>
+						Найти примерно на 79 строке
+						<pre class="language-markup">
+							<code class="language-markup">
+$new_pass_hash = password_hash($new_pass, PASSWORD_DEFAULT);
+							</code>
+						</pre>
+						Заменить на
+						<pre class="language-markup">
+							<code class="language-markup">
+/* ----------- DLE + IP.Board v2.0. ----------- */
+$salt_lost		= generateSalt();
+$new_pass_hash		= encryptedPassword($new_pass_hash, $salt_lost);
+/* ----------- DLE + IP.Board v2.0. ----------- */
+							</code>
+						</pre>
+						<blockquote>Данная функция выполняет хеширование паролей в новом виде, и обязательна!</blockquote>
+					</section>
+					<section class="section">
+						Найти примерно на 85-86 строка
+						<pre class="language-markup">
+							<code class="language-markup">
+$db->query( "UPDATE " . USERPREFIX . "_users SET password='" . $db->safesql($new_pass_hash) . "', allowed_ip = '' WHERE user_id='{$douser}'" );
+$db->query( "DELETE FROM " . USERPREFIX . "_lostdb WHERE lostname='$douser'" );
+							</code>
+						</pre>
+						Заменить на
+						<pre class="language-markup">
+							<code class="language-markup">
+$db->query( "UPDATE " . USERPREFIX . "_users SET password='" . $db->safesql($new_pass_hash) . "', pass_salt='".$salt_lost."' allowed_ip = '' WHERE user_id='{$douser}'" );
+$db->query( "DELETE FROM " . USERPREFIX . "_lostdb WHERE lostname='$douser'" );
+
+/* ----------- DLE + IP.Board v2.0. ----------- */
+$ipb->LostPassword($username, $new_pass, $salt_lost);
+/* ----------- DLE + IP.Board v2.0. ----------- */
+							</code>
+						</pre>
+					</section>
+				</section>
+				<section id="profile" class="section scrollspy">
+					<h5>Изменяем профиль на форуме, при изменении в ДЛЕ <b>Файл engine/modules/profile.php</b></h5>
+					<section class="section">
+						<h5>Новый вид паролей</h5>
+						Найти на 334 строке
+						<pre class="language-markup">
+							<code class="language-markup">
+$password1 = $db->safesql( password_hash($password1, PASSWORD_DEFAULT) );
+							</code>
+						</pre>
+						Заменить на
+						<pre class="language-markup">
+							<code class="language-markup">
+/* ----------- DLE + IP.Board v2.0. ----------- */
+$salt_profile		= generateSalt();
+if ($member_id['pass_salt'] != '') {
+$salt_profile	= $member_id['pass_salt'];
+}
+$password1			= encryptedPassword($password1, $salt_profile);
+$password1 			= $db->safesql( $password1 );
+/* ----------- DLE + IP.Board v2.0. ----------- */
+							</code>
+						</pre>
+					</section>
+					<section class="section">
+						<h5>Обновление информации пользователя</h5>
+						Найти на 348 строке
+						<pre class="language-markup">
+							<code class="language-markup">
+$db->query( $sql_user );
+							</code>
+						</pre>
+						Выше вставить
+						<pre class="language-markup">
+							<code class="language-markup">
+/* ----------- DLE + IP.Board v2.0. ----------- */
+$ipb->UpdateProfile($row['name'], $email, $_POST['password1'], $salt_profile, $info);
+/* ----------- DLE + IP.Board v2.0. ----------- */
+							</code>
+						</pre>
+					</section>
+				</section>
+			</div>
+			<div class="col hide-on-small-only m3 l2">
+				<ul class="pinned section table-of-contents">
+					<li>
+						<a href="#install">Установка</a>
+					</li>
+					<li>
+						<a href="#forum_settings">Настройки форума</a>
+					</li>
+					<li>
+						<a href="#sitelogin">Авторизация</a>
+					</li>
+					<li>
+						<a href="#register">Регистрация</a>
+					</li>
+					<li>
+						<a href="#lostpassword">Восстановление пароля/Сброс пароля</a>
+					</li>
+					<li>
+						<a href="#profile">Изменение профиля</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	<footer class="page-footer">
+		<div class="container">
+			<div class="row">
+				<div class="col l6 s12">
+					<h5 class="white-text">Интеграция DLE IPS 4.x</h5>
+					<p class="black-text">
+						<ul class="z-depth-0 collapsible" data-collapsible="accordion">
+							<li>
+								<div class="collapsible-header"><i class="material-icons">help_outline</i>Информация о модуле</div>
+								<div class="z-depth-1 collapsible-body">
+									<p>
+										<strong>Основные возможности модуля:</strong>
+									</p>
+									<ol>
+										<li>
+											Форум может находиться на поддомене или на другом домене
+										</li>
+										<li>
+											Базы форума и сайта могут различаться, если используется одна база то переключение не происходит&nbsp;
+										</li>
+										<li>
+											Прификсы таблиц тоже могут быть как разными так и одинаковыми&nbsp;
+										</li>
+										<li>
+											Каждую возможность можно выключить в админки&nbsp;
+										</li>
+										<li>
+											Двухсторонняя регистрация&nbsp;
+										</li>
+										<li>
+											Общая авторизация&nbsp;
+										</li>
+										<li>
+											Общий профиль&nbsp;
+										</li>
+										<li>
+											Восстановление пароля в двух скриптах&nbsp;
+										</li>
+										<li>
+											При редактировании/удалении/добавлении пользователей в админке DLE изменения происходят и на форуме, вплоть до изменения логина&nbsp;
+										</li>
+										<li>
+											На сайте также может быть установлен блок: "Последние сообщения с форума"&nbsp;
+										</li>
+										<li>
+											Автоматический перенос пользователей&nbsp;с сайта на форум
+										</li>
+									</ol>
+								</div>
+							</li>
+						</ul>
+					</p>
+				</div>
+				<div class="col l4 offset-l2 s12">
+					<h5 class="white-text">Cсылки</h5>
+					<ul>
+						<li>
+							<a class="grey-text text-lighten-3" href="http://forum.dle-integration.ru/index.php?/store/">Продлить лицензию</a>
+						</li>
+						<li>
+							<a class="grey-text text-lighten-3" href="http://forum.dle-integration.ru/index.php?/forum/6-%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F-%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%BA%D0%B0/">Техническая поддержка</a>
+						</li>
+						<li>
+							<a class="grey-text text-lighten-3" href="http://forum.dle-integration.ru/index.php?/forum/8-%D0%BF%D1%80%D0%B5%D0%B4%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D1%8F/">Предложения по улучшению</a>
+						</li>
+						<li>
+							<a class="grey-text text-lighten-3" href="http://forum.dle-integration.ru/index.php?/bugtracker/">Сообщить о баге</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<div class="footer-copyright">
+			<div class="container">
+				© 2017 DLE-Integration
+				<a class="grey-text text-lighten-4 right" href="http://dle-integration.ru/">FoLez</a>
+			</div>
+		</div>
+	</footer>
+	<script type="text/javascript" src="js/materialize.min.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function() {
+			$(".scrollspy").scrollSpy();
+		});
+	</script>
+</body>
+</html>
