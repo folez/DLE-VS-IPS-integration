@@ -9,7 +9,7 @@ Integration auth,register DLE and IPS 4.X
 4. The contents of the templates / Default folder (* .tpl files) can be copied into the folder with your template, you can change them to your template, by default they are made for the Default template.
 5. Run the installation file http: //www.your_domain/install.php, then follow its instructions. Do not skip to the next steps until you finish using the installation wizard. You can not change the files, each change is commented, if you do not intend to use this or that possibility, you can not make changes for it.
 
-> If the forum and the DLL use different domains or the forum is on a subdomain, then this setting is not required. Otherwise, here is the name of your domain where the forum stands with a dot in front and without a slash, the rest does not touch anything.
+> If the forum and the DLE use different domains or the forum is on a subdomain, then this setting is not required. Otherwise, here is the name of your domain where the forum stands with a dot in front and without a slash, the rest does not touch anything.
 ---
 1. Create a file in the root of the forum constants.php (if there is none)
 2. Add this code
